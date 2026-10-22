@@ -1,0 +1,12 @@
+{
+  "name": "parley",
+  "description": "parley: push-based context sync between Claude Code sessions",
+  "owner": { "name": "Apoorv Yadav", "url": "https://github.com/apoorvyadav1111" },
+  "plugins": [
+    {
+      "name": "parley",
+      "source": "./",
+      "description": "Push-based context sync between your Claude Code sessions, targeted by cards and triaged on arrival"
+    }
+  ]
+}

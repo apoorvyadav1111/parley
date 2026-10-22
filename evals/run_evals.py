@@ -21,7 +21,14 @@ import uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARLEY = os.path.join(os.path.dirname(HERE), "skills", "parley", "parley.py")  # repo copy, for seeding
-INSTALLED = os.path.expanduser("~/.claude/skills/parley/parley.py")  # what child sessions run (./install.sh)
+def installed_script() -> str:
+    """The parley.py child sessions run: the plugin copy if installed, else ./install.sh's."""
+    plugin = sorted(glob.glob(os.path.expanduser(
+        "~/.claude/plugins/cache/parley/parley/*/skills/parley/parley.py")))
+    return plugin[-1] if plugin else os.path.expanduser("~/.claude/skills/parley/parley.py")
+
+
+INSTALLED = installed_script()
 RUNNER_PID = str(os.getpid())
 
 PEERS = {
@@ -281,7 +288,7 @@ def run(s, claude, outdir):
 
     cmd = [claude, "-p", s.prompt, "--session-id", subject, "--output-format", "json",
            "--permission-mode", "acceptEdits",
-           "--allowedTools", "Bash(~/.claude/skills/parley/parley.py:*)",
+           "--allowedTools",
            f"Bash({INSTALLED}:*)", "Read", "Edit", "Write", "Glob", "Grep", "ToolSearch",
            "SendMessage", "Skill"]
     p = subprocess.run(cmd, cwd=work, env=base, capture_output=True, text=True, timeout=600)

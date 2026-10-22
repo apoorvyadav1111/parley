@@ -10,6 +10,7 @@ Read this only when `SKILL.md` isn't enough: debugging, edge cases, or questions
 | `sessions.json` | Registry: session id → `name` (handle), `about` (card), `cwd`, `pid`, `host_id` (ring address), `status`, `started`, `seen`, `ended`. |
 | `cursors/<session id>` | Byte offset into `log.jsonl` this session has read up to. |
 | `archive/log-*.jsonl.gz` | Prefixes removed by `sweep`. Read with `gzcat`. |
+| `attachments/<message id>/` | Read-only snapshots of files sent with `--attach`. Removed when `sweep` archives their message. |
 | `.lock` | Taken for every append, registry/cursor write and sweep. |
 
 Message fields: `v` (schema, 1), `id` (`m-` + 8 hex), `ts`, `from`, `from_name`, `to` (session id or `*`), `to_name`, `type` (`update` or `ack`), `body`, plus `severity`, `origin`, `ack_requested`, and `wake` (rung) on updates, or `ack_of` on confirmations.
@@ -35,6 +36,8 @@ Message fields: `v` (schema, 1), `id` (`m-` + 8 hex), `ts`, `from`, `from_name`,
 - Hooks: `on-start` (SessionStart: registers, lists project peers, delivers), `on-prompt` (UserPromptSubmit: delivers before Claude answers), `on-end` (SessionEnd: marks offline). Turns started by a ring also run `on-prompt`.
 - An injection holds at most 8 messages / ~3,000 characters. The cursor only advances past what was shown; the rest waits for `collect` or the next prompt. `collect` returns up to 20 at a time.
 - `dispatch` and `confirm` first deliver anything unread for the sender ("arrived first").
+- Confirmations shown by `awaiting` are remembered as seen (`seen_ids`, last 500), so hooks don't deliver them a second time.
+- **Attachments:** up to 5 text files per dispatch, 2 MB each. Every file is checked before anything is written; one bad file sends nothing. Each recipient's message gets its own snapshot folder.
 
 ## Rules the script enforces
 

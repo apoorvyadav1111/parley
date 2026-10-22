@@ -443,6 +443,66 @@ class Parley(unittest.TestCase):
         self.assertNotIn("billing", ctx)
         self.assertNotIn("for chat A", ctx)
 
+    # -- attachments ---------------------------------------------------------
+
+    def write_file(self, name, text):
+        path = os.path.join(self.dir, name)
+        with open(path, "w") as f:
+            f.write(text)
+        return path
+
+    def test_attachment_is_a_read_only_snapshot(self):
+        self.make("aaaa1111", "frontend")
+        self.make("ffff2222", "backend")
+        draft = self.write_file("draft.md", "# Draft\nversion one\n")
+        self.dispatch("aaaa1111", "backend", "please review the attached draft",
+                      "--attach", draft)
+        self.write_file("draft.md", "changed after sending")          # sender edits later
+        (item,) = self.log()[0]["attachments"]
+        self.assertTrue(item["path"].startswith(os.path.join(self.data, "attachments")))
+        with open(item["path"]) as f:
+            self.assertEqual(f.read(), "# Draft\nversion one\n")
+        self.assertFalse(os.access(item["path"], os.W_OK))
+        ctx = self.prompt("ffff2222")
+        self.assertIn("attached files", ctx)
+        self.assertIn("draft.md", ctx)
+
+    def test_bad_attachments_send_nothing(self):
+        self.make("aaaa1111", "frontend")
+        self.make("ffff2222", "backend")
+        binary = self.write_file("image.png", "x")
+        big = self.write_file("big.md", "x" * 2_000_001)
+        for path, error in ((binary, "only text files"), (big, "the limit is"),
+                            (os.path.join(self.dir, "missing.md"), "no such file")):
+            r = self.dispatch("aaaa1111", "backend", "x", "--attach", path, ok=False)
+            self.assertIn(error, r.stderr)
+        self.assertEqual(self.log(), [])
+
+    def test_sweep_removes_archived_attachments(self):
+        self.make("aaaa1111", "frontend")
+        self.make("ffff2222", "backend")
+        self.dispatch("aaaa1111", "backend", "old", "--attach", self.write_file("a.md", "a"))
+        path = os.path.join(self.data, "log.jsonl")
+        rows = self.log()
+        rows[0]["ts"] = "2026-08-01T10:00:00-07:00"
+        with open(path, "w") as f:
+            f.write(json.dumps(rows[0]) + "\n")
+        self.prompt("ffff2222")
+        self.prompt("aaaa1111")   # every online reader, sender included, has to be past it
+        self.assertIn("archived 1", self.run_cli("aaaa1111", "sweep").stdout)
+        self.assertFalse(os.path.exists(os.path.join(self.data, "attachments", rows[0]["id"])))
+
+    # -- awaiting counts as seen ----------------------------------------------
+
+    def test_confirmation_seen_in_awaiting_is_not_redelivered(self):
+        self.make("aaaa1111", "frontend")
+        self.make("ffff2222", "backend")
+        self.dispatch("aaaa1111", "backend", "question", "--ask-confirm")
+        self.prompt("ffff2222")
+        self.run_cli("ffff2222", "confirm", self.log()[0]["id"], "the answer")
+        self.assertIn("the answer", self.run_cli("aaaa1111", "awaiting").stdout)
+        self.assertEqual(self.prompt("aaaa1111"), "")
+
     # -- sweep ---------------------------------------------------------------
 
     def test_sweep_cuts_old_read_prefix_and_shifts_cursors(self):

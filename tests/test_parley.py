@@ -503,6 +503,24 @@ class Parley(unittest.TestCase):
         self.assertIn("the answer", self.run_cli("aaaa1111", "awaiting").stdout)
         self.assertEqual(self.prompt("aaaa1111"), "")
 
+    # -- install detection ---------------------------------------------------
+
+    def test_selfcheck_sees_plugin_hooks_in_plugin_cache(self):
+        import shutil as sh
+        config = os.path.join(self.dir, "config")
+        root = os.path.join(config, "plugins", "cache", "parley", "parley", "0.1.0")
+        os.makedirs(os.path.join(root, "skills", "parley"))
+        sh.copy(SCRIPT, os.path.join(root, "skills", "parley", "parley.py"))
+        sh.copytree(os.path.join(REPO, "hooks"), os.path.join(root, "hooks"))
+        with open(os.path.join(config, "settings.json"), "w") as f:
+            json.dump({}, f)
+        env = dict(self.env(), CLAUDE_CONFIG_DIR=config)
+        env.pop("PARLEY_DIR")
+        r = subprocess.run(["python3", os.path.join(root, "skills", "parley", "parley.py"),
+                            "selfcheck"], capture_output=True, text=True, env=env)
+        self.assertIn("on-start` (from plugin)", r.stdout)
+        self.assertTrue(os.path.isdir(os.path.join(config, "parley")))  # ledger under config dir
+
     # -- sweep ---------------------------------------------------------------
 
     def test_sweep_cuts_old_read_prefix_and_shifts_cursors(self):

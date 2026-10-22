@@ -1,6 +1,6 @@
 {
   "name": "parley",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Push-based context sync between your Claude Code sessions: each chat gets only the changes its card says it needs, triaged on arrival, with privacy seals enforced in code.",
   "author": { "name": "Apoorv Yadav", "url": "https://github.com/apoorvyadav1111" },
   "repository": "https://github.com/apoorvyadav1111/parley",

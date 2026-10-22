@@ -41,7 +41,8 @@ from typing import Dict, Iterator, List, NamedTuple, Optional, Tuple, TypedDict
 
 # ---- paths and limits --------------------------------------------------------
 
-DATA_DIR = os.path.expanduser(os.environ.get("PARLEY_DIR", "~/.claude/parley"))
+CLAUDE_CONFIG_DIR = os.path.expanduser(os.environ.get("CLAUDE_CONFIG_DIR", "~/.claude"))
+DATA_DIR = os.path.expanduser(os.environ.get("PARLEY_DIR", os.path.join(CLAUDE_CONFIG_DIR, "parley")))
 LEDGER_PATH = os.path.join(DATA_DIR, "log.jsonl")
 REGISTRY_PATH = os.path.join(DATA_DIR, "sessions.json")
 CURSORS_DIR = os.path.join(DATA_DIR, "cursors")
@@ -49,10 +50,11 @@ ARCHIVE_DIR = os.path.join(DATA_DIR, "archive")
 ATTACHMENTS_DIR = os.path.join(DATA_DIR, "attachments")
 CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 LOCK_PATH = os.path.join(DATA_DIR, ".lock")
-CLAUDE_SETTINGS_PATH = os.path.expanduser("~/.claude/settings.json")
+CLAUDE_SETTINGS_PATH = os.path.join(CLAUDE_CONFIG_DIR, "settings.json")
 SCRIPT_PATH = os.path.realpath(__file__)
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(SCRIPT_PATH)))
-IS_PLUGIN_INSTALL = (os.sep + os.path.join(".claude", "plugins") + os.sep) in SCRIPT_PATH
+# Claude Code installs plugins under <config dir>/plugins/cache/<marketplace>/<plugin>/<version>/.
+IS_PLUGIN_INSTALL = (os.sep + os.path.join("plugins", "cache") + os.sep) in SCRIPT_PATH
 PLUGIN_HOOKS_PATH = os.path.join(PLUGIN_ROOT, "hooks", "hooks.json") if IS_PLUGIN_INSTALL else ""
 
 
